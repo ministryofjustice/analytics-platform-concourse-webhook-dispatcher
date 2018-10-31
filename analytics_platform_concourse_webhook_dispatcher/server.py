@@ -85,8 +85,9 @@ def serve(routes=None):
 
     app.run(host="0.0.0.0", port=app.config.PORT, debug=app.config.DEBUG)
     loop = asyncio.get_event_loop()
-    pending = asyncio.Task.all_tasks()
-    loop.run_until_complete(asyncio.gather(*pending))
+    if not loop.is_closed():
+        pending = asyncio.Task.all_tasks()
+        loop.run_until_complete(asyncio.gather(*pending))
 
 
 if __name__ == '__main__':
