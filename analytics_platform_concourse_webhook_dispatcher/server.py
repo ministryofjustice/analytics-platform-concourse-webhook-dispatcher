@@ -14,7 +14,7 @@ app = Sanic()
 app.config.from_object(Config)
 
 
-@app.listener('before_server_start')
+@app.listener("before_server_start")
 async def aiohttp_setup(app, loop):
     # setup the session
     timeout = aiohttp.ClientTimeout(total=10)
@@ -22,7 +22,7 @@ async def aiohttp_setup(app, loop):
     app.http = session
 
 
-@app.listener('after_server_stop')
+@app.listener("after_server_stop")
 async def aiohttp_teardown(app, loop):
     await app.http.close()
 
@@ -39,10 +39,10 @@ async def dispatch(event: str, body: dict):
         return json({}, status=404)
     url = concourse.webhook_url(
         app.config.CONCOURSE_BASE_URL,
-        route['team'],
-        route['pipeline'],
-        route['resource'],
-        app.config.CONCOURSE_WEBHOOK_TOKEN
+        route["team"],
+        route["pipeline"],
+        route["resource"],
+        app.config.CONCOURSE_WEBHOOK_TOKEN,
     )
     print(url)
     asyncio.ensure_future(app.http.post(url))
@@ -50,17 +50,17 @@ async def dispatch(event: str, body: dict):
     return json(route, status=204)
 
 
-@app.middleware('request')
+@app.middleware("request")
 async def validateHook(request):
-    secret = app.config.get('SECRET')
+    secret = app.config.get("SECRET")
 
-    if request.method == 'POST':
-        digest = make_digest(bytes(secret, encoding='utf8'), request.body)
-        hook_signature = request.headers.get('x-hub-signature', '')
+    if request.method == "POST":
+        digest = make_digest(bytes(secret, encoding="utf8"), request.body)
+        hook_signature = request.headers.get("x-hub-signature", "")
         match = hmac.compare_digest(digest, hook_signature)
 
         if not match:
-            abort(400, 'Invalid signature')
+            abort(400, "Invalid signature")
 
 
 @app.route("/")
@@ -68,13 +68,13 @@ async def home(request):
     return json({})
 
 
-@app.route("/", methods=['POST'])
-@app.route("/<path:path>", methods=['POST'])
+@app.route("/", methods=["POST"])
+@app.route("/<path:path>", methods=["POST"])
 async def hook(request, path=None):
-    event = request.headers.get('X-GitHub-Event', 'ping')
+    event = request.headers.get("X-GitHub-Event", "ping")
     print(request)
-    if event == 'ping':
-        return json({'msg': 'pong'})
+    if event == "ping":
+        return json({"msg": "pong"})
     else:
         return await dispatch(event, request.json)
 
@@ -90,5 +90,5 @@ def serve(routes=None):
         loop.run_until_complete(asyncio.gather(*pending))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     serve()

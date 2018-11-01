@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from sanic_envconfig import EnvConfig
 
 
@@ -12,8 +10,3 @@ class Config(EnvConfig):
     CONCOURSE_TEAM: str = "main"
     CONCOURSE_DEFAULT_RESOURCE: str = "release"
     DEFAULT_EVENT: str = "release"
-
-
-@Config.parse(Path)
-def parse_path(value):
-    return Path(value)

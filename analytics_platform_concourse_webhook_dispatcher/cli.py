@@ -9,12 +9,12 @@ from analytics_platform_concourse_webhook_dispatcher.server import serve, app
 
 
 @click.command()
-@click.argument('cmd', type=click.Choice(['server', 'config']))
+@click.argument("cmd", type=click.Choice(["server", "config"]))
 def main(cmd):
     """Console script for analytics_platform_concourse_webhook_dispatcher."""
-    if cmd == 'server':
+    if cmd == "server":
         serve()
-    elif cmd == 'config':
+    elif cmd == "config":
         pprint(app.config)
     return 0
 
