@@ -5,13 +5,16 @@ import aiohttp
 from sanic import Sanic
 from sanic.exceptions import abort
 from sanic.response import json
+from fly import Fly
 
 from analytics_platform_concourse_webhook_dispatcher.config import Config
-from analytics_platform_concourse_webhook_dispatcher import events, concourse
+from analytics_platform_concourse_webhook_dispatcher import events
 from .signature import make_digest
 
 app = Sanic()
 app.config.from_object(Config)
+
+fly_lock = asyncio.Lock()
 
 
 @app.listener("before_server_start")
@@ -37,15 +40,27 @@ async def dispatch(event: str, body: dict):
     route = events.get(app, event, body)
     if not route:
         return json({}, status=404)
-    url = concourse.webhook_url(
-        app.config.CONCOURSE_BASE_URL,
-        route["team"],
-        route["pipeline"],
-        route["resource"],
-        app.config.CONCOURSE_WEBHOOK_TOKEN,
+
+    concourse_url = app.config.CONCOURSE_BASE_URL
+
+    run_args = [
+        "check-resource",
+        "--resource", f"{route['pipeline']}/{route['resource']}"
+    ]
+
+    fly = Fly(
+        concourse_url=concourse_url
     )
-    print(url)
-    asyncio.ensure_future(app.http.post(url))
+    with fly_lock:
+        fly.get_fly()
+
+    fly.login(
+        app.config.CONCOURSE_USERNAME,
+        app.config.CONCOURSE_PASSWORD,
+        route["team"]
+    )
+
+    await asyncio.ensure_future(fly.run(*run_args))
 
     return json(route, status=204)
 

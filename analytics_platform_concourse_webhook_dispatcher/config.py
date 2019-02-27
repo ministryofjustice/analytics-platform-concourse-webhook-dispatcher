@@ -6,7 +6,8 @@ class Config(EnvConfig):
     PORT: int = 8000
     SECRET: str = ""
     CONCOURSE_BASE_URL: str = ""
-    CONCOURSE_WEBHOOK_TOKEN: str = ""
     CONCOURSE_TEAM: str = "main"
     CONCOURSE_DEFAULT_RESOURCE: str = "release"
+    CONCOURSE_USERNAME: str = ""
+    CONCOURSE_PASSWORD: str = ""
     DEFAULT_EVENT: str = "release"

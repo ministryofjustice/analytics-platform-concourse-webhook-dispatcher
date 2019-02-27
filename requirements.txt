@@ -4,3 +4,4 @@ sanic==0.8.3
 aiohttp==3.4.4
 sanic-envconfig==1.0.1
 schema==0.6.8
+python-fly==0.0.2
