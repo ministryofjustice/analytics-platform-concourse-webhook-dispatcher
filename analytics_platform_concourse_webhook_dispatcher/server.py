@@ -1,10 +1,10 @@
 import hmac
 import asyncio
-import aiohttp
 
 from sanic import Sanic
 from sanic.exceptions import abort
 from sanic.response import json
+from sanic.log import logger
 from fly import Fly
 
 from analytics_platform_concourse_webhook_dispatcher.config import Config
@@ -15,19 +15,6 @@ app = Sanic()
 app.config.from_object(Config)
 
 fly_lock = asyncio.Lock()
-
-
-@app.listener("before_server_start")
-async def aiohttp_setup(app, loop):
-    # setup the session
-    timeout = aiohttp.ClientTimeout(total=10)
-    session = aiohttp.ClientSession(loop=loop, timeout=timeout)
-    app.http = session
-
-
-@app.listener("after_server_stop")
-async def aiohttp_teardown(app, loop):
-    await app.http.close()
 
 
 async def dispatch(event: str, body: dict):
@@ -51,16 +38,16 @@ async def dispatch(event: str, body: dict):
     fly = Fly(
         concourse_url=concourse_url
     )
-    with fly_lock:
+    async with fly_lock:
         fly.get_fly()
+        fly.login(
+            app.config.CONCOURSE_MAIN_USERNAME,
+            app.config.CONCOURSE_MAIN_PASSWORD,
+            route["team"]
+        )
 
-    fly.login(
-        app.config.CONCOURSE_USERNAME,
-        app.config.CONCOURSE_PASSWORD,
-        route["team"]
-    )
-
-    await asyncio.ensure_future(fly.run(*run_args))
+    fly.run(*run_args)
+    logger.info('Calling: fly %s' % ' '.join(run_args))
 
     return json(route, status=204)
 
@@ -87,7 +74,7 @@ async def home(request):
 @app.route("/<path:path>", methods=["POST"])
 async def hook(request, path=None):
     event = request.headers.get("X-GitHub-Event", "ping")
-    print(request)
+    logger.info(request)
     if event == "ping":
         return json({"msg": "pong"})
     else:

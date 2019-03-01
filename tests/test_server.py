@@ -5,8 +5,8 @@ import os
 import json
 import re
 from typing import MutableMapping
+from unittest.mock import patch, Mock
 
-from aioresponses import aioresponses
 import pytest
 
 
@@ -30,12 +30,6 @@ def app():
     from analytics_platform_concourse_webhook_dispatcher.server import app
 
     return app
-
-
-@pytest.fixture
-def mock_aioresponse():
-    with aioresponses(passthrough=["http://127.0.0.1"]) as m:
-        yield m
 
 
 def test_home(app):
@@ -73,8 +67,15 @@ def test_implicit_ping(app):
     assert response.json == {"msg": "pong"}
 
 
-def test_release_event(app, mock_aioresponse):
-    mock_aioresponse.post(CONCOURSE_BASE_URL_PATTERN, status=200)
+mock_get_fly = Mock()
+mock_login = Mock()
+mock_run = Mock()
+
+
+@patch("fly.Fly.get_fly", mock_get_fly)
+@patch("fly.Fly.login", mock_login)
+@patch("fly.Fly.run", mock_run)
+def test_release_event(app):
     with open(f"{DIR}/data/release.json", "r") as f:
         data = json.load(f)
     digest = sign(app, data)
@@ -82,17 +83,10 @@ def test_release_event(app, mock_aioresponse):
         "/", json=data, headers={"X-Github-Event": "release", "X-Hub-Signature": digest}
     )
     assert response.status == 204
-    reqs = {k: v for k, v in mock_aioresponse.requests}
-    assert len(reqs) == 1
-    repo_name = data['repository']['name']
-    req = reqs['POST']
-    expected_path = f'/api/v1/teams/' \
-                    f'{app.config.CONCOURSE_TEAM}' \
-                    f'/pipelines/' \
-                    f'{repo_name}' \
-                    f'/resources/' \
-                    f'{app.config.CONCOURSE_DEFAULT_RESOURCE}' \
-                    f'/check/webhook?webhook_token=' \
-                    f'{app.config.CONCOURSE_WEBHOOK_TOKEN}'
-    assert expected_path == req.path_qs
-    assert app.config.CONCOURSE_BASE_URL == f"{req.scheme}://{req.host}"
+    mock_get_fly.assert_called_once_with()
+    mock_login.assert_called_once_with("", "", "main")
+    mock_run.assert_called_once_with(
+        "check-resource", 
+        "--resource", 
+        "Hello-World/release"
+    )
