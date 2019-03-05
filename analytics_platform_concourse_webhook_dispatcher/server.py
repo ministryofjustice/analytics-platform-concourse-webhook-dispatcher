@@ -1,30 +1,20 @@
 import hmac
 import asyncio
-import aiohttp
 
 from sanic import Sanic
 from sanic.exceptions import abort
 from sanic.response import json
+from sanic.log import logger
+from fly import Fly
 
 from analytics_platform_concourse_webhook_dispatcher.config import Config
-from analytics_platform_concourse_webhook_dispatcher import events, concourse
+from analytics_platform_concourse_webhook_dispatcher import events
 from .signature import make_digest
 
 app = Sanic()
 app.config.from_object(Config)
 
-
-@app.listener("before_server_start")
-async def aiohttp_setup(app, loop):
-    # setup the session
-    timeout = aiohttp.ClientTimeout(total=10)
-    session = aiohttp.ClientSession(loop=loop, timeout=timeout)
-    app.http = session
-
-
-@app.listener("after_server_stop")
-async def aiohttp_teardown(app, loop):
-    await app.http.close()
+fly_lock = asyncio.Lock()
 
 
 async def dispatch(event: str, body: dict):
@@ -37,15 +27,28 @@ async def dispatch(event: str, body: dict):
     route = events.get(app, event, body)
     if not route:
         return json({}, status=404)
-    url = concourse.webhook_url(
-        app.config.CONCOURSE_BASE_URL,
-        route["team"],
-        route["pipeline"],
-        route["resource"],
-        app.config.CONCOURSE_WEBHOOK_TOKEN,
+
+    concourse_url = app.config.CONCOURSE_BASE_URL
+
+    run_args = [
+        "check-resource",
+        "--resource", f"{route['pipeline']}/{route['resource']}"
+    ]
+
+    fly = Fly(
+        concourse_url=concourse_url,
+        target=app.config.CONCOURSE_TEAM
     )
-    print(url)
-    asyncio.ensure_future(app.http.post(url))
+    async with fly_lock:
+        fly.get_fly()
+        fly.login(
+            app.config.CONCOURSE_MAIN_USERNAME,
+            app.config.CONCOURSE_MAIN_PASSWORD,
+            app.config.CONCOURSE_TEAM,
+        )
+
+    fly.run(*run_args)
+    logger.info('Calling: fly %s' % ' '.join(run_args))
 
     return json(route, status=204)
 
@@ -72,7 +75,7 @@ async def home(request):
 @app.route("/<path:path>", methods=["POST"])
 async def hook(request, path=None):
     event = request.headers.get("X-GitHub-Event", "ping")
-    print(request)
+    logger.info(request)
     if event == "ping":
         return json({"msg": "pong"})
     else:
