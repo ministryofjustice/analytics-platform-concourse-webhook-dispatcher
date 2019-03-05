@@ -36,14 +36,15 @@ async def dispatch(event: str, body: dict):
     ]
 
     fly = Fly(
-        concourse_url=concourse_url
+        concourse_url=concourse_url,
+        target=app.config.CONCOURSE_TEAM
     )
     async with fly_lock:
         fly.get_fly()
         fly.login(
             app.config.CONCOURSE_MAIN_USERNAME,
             app.config.CONCOURSE_MAIN_PASSWORD,
-            route["team"]
+            app.config.CONCOURSE_TEAM,
         )
 
     fly.run(*run_args)
