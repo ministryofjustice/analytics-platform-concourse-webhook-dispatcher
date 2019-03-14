@@ -37,7 +37,8 @@ async def dispatch(event: str, body: dict):
 
     fly = Fly(
         concourse_url=concourse_url,
-        target=app.config.CONCOURSE_TEAM
+        target=app.config.CONCOURSE_TEAM,
+        executable=app.config.FLY_BIN
     )
     async with fly_lock:
         fly.get_fly()
