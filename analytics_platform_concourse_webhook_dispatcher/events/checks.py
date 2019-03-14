@@ -11,3 +11,14 @@ def release(payload) -> bool:
         }
     ).validate(payload)
     return data["action"] == "published" and data["release"]["prerelease"] == False
+
+
+def push(payload) -> bool:
+    data = Schema(
+        {
+            "ref": str,
+            "repository": {"name": str, str: object},
+            str: object,
+        }
+    ).validate(payload)
+    return data["ref"] != "refs/heads/master"
