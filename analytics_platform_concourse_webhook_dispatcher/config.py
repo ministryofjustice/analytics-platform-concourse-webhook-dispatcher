@@ -12,3 +12,4 @@ class Config(EnvConfig):
     CONCOURSE_MAIN_USERNAME: str = ""
     CONCOURSE_MAIN_PASSWORD: str = ""
     DEFAULT_EVENT: str = "release"
+    FLY_BIN: str = '/home/app/bin/fly'
