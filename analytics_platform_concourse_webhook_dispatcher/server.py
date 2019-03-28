@@ -1,5 +1,6 @@
 import hmac
 import asyncio
+import subprocess
 
 from sanic import Sanic
 from sanic.exceptions import abort
@@ -48,8 +49,11 @@ async def dispatch(event: str, body: dict):
             app.config.CONCOURSE_TEAM,
         )
 
-    fly.run(*run_args)
     logger.info('Calling: fly %s' % ' '.join(run_args))
+    try:
+        fly.run(*run_args)
+    except subprocess.CalledProcessError as e:
+        logger.info('Concourse error: %s' % e.output)
 
     return json(route, status=204)
 
