@@ -1,3 +1,5 @@
+[![Docker Repository on Quay](https://quay.io/repository/mojanalytics/webhook-dispatcher/status "Docker Repository on Quay")](https://quay.io/repository/mojanalytics/webhook-dispatcher)
+
 Analytics Platform Concourse Webhook Dispatcher
 ===============================================
 
