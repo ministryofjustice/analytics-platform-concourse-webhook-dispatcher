@@ -22,63 +22,22 @@ dynamically routes to each pipeline.
 
 ### Major assumption
 
-1. Our pipeline names match github repository names. This dispatcher assumes any repository has a pipeline in
+Our pipeline names match github repository names. This dispatcher assumes any repository has a pipeline in
 the `CONCOURSE_TEAM` with exactly the same name.
-2. That all pipelines are configured to allow the same [webhook token](https://concourse-ci.org/resources.html#resource-webhook-token)
 
 ## Usage
 
-<table>
-<thead>
-<tr class="header">
-<th>Variable</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>DEBUG</td>
-<td>False</td>
-<td>False</td>
-</tr>
-<tr class="even">
-<td>PORT</td>
-<td>8000</td>
-<td>Port to listen on</td>
-</tr>
-<tr class="odd">
-<td>SECRET</td>
-<td><strong>No Default</strong></td>
-<td>Webhook Secret</td>
-</tr>
-<tr class="odd">
-<td>CONCOURSE_BASE_URL</td>
-<td><strong>No Default</strong></td>
-<td>Base URL of your concourse instance; include trailing slash</td>
-</tr>
-<tr class="even">
-<td>CONCOURSE_WEBHOOK_TOKEN</td>
-<td><strong>No Default</strong></td>
-<td>Webhook secret that concourse will expect as a query param</td>
-</tr>
-<tr class="even">
-<td>CONCOURSE_TEAM</td>
-<td>main</td>
-<td>Concourse team name</td>
-</tr>
-<tr class="even">
-<td>CONCOURSE_DEFAULT_RESOURCE</td>
-<td>release</td>
-<td>The concourse resource to trigger the check on in your pipeline</td>
-</tr>
-<tr class="even">
-<td>DEFAULT_EVENT</td>
-<td>release</td>
-<td>The github event to trigger a pipeline check for</td>
-</tr>
-</tbody>
-</table>
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `DEBUG`  | `False` | Enable/disable debugging |
+| `PORT` | `8000` | Port to listen on |
+| `SECRET` | **no default** | Webhook Secret used to authenticate requests from GitHub | 
+| `CONCOURSE_BASE_URL` | **no default** | Base URL of your concourse instance; include trailing slash |
+| `CONCOURSE_TEAM` | `main` | Concourse team name |
+| `CONCOURSE_MAIN_PASSWORD` | **no default** | password to login into Concourse |
+| `CONCOURSE_MAIN_USERNAME` | **no default** | username to login into Concourse | 
+| `CONCOURSE_DEFAULT_RESOURCE` | `release` | The concourse resource to trigger the check on in your pipeline |
+| `DEFAULT_EVENT` | `release` | The github event to trigger a pipeline check for |
 
 ## Default behaviour
 
@@ -100,9 +59,10 @@ The Docker image is automatically built in [quay.io](https://quay.io) at https:/
 make sure your working directory is the root of the checkout of this repo and run the following:
 ```bash
 export PYTHONPATH="${PYTHONPATH}:${PWD}"
-export CONCOURSE_BASE_URL=https://concourse.yourserver.com
+export CONCOURSE_BASE_URL=https://concourse.yourserver.com/
 export CONCOURSE_TEAM=main
-export CONCOURSE_WEBHOOK_TOKEN="webhook-token-for-concourse-pipeline" # https://concourse-ci.org/resources.html#resource-webhook-token
+export CONCOURSE_USERNAME="concourse-username" # see `secrets.basicAuthUsername` in `concourse.yaml` config
+export CONCOURSE_PASSWORD="$concourse-password" # see `secrets.basicAuthPassword` in `concourse.yaml` config
 export SECRET="your-github-webhook-secret" # https://developer.github.com/webhooks/securing/
 python analytics_platform_concourse_webhook_dispatcher/cli.py server
 ```
@@ -143,7 +103,7 @@ pytest
 ```
 
 ## Deploying to Kubernetes
-Use this [helm chart](https://github.com/ministryofjustice/analytics-platform-helm-charts/tree/master/charts/webhook-dispatcher)
+Release the [`webhook-dispatcher` helm chart](https://github.com/ministryofjustice/analytics-platform-helm-charts/tree/master/charts/webhook-dispatcher) in your kubernetes cluster.
 
 ## Credits
 
